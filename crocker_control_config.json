@@ -1,0 +1,5 @@
+{
+    "update_interval_seconds": 600,
+    "dome_controller_device": "/dev/ttyUSB_DOME",
+    "obs_plan_dir": "obs_plans"
+}
