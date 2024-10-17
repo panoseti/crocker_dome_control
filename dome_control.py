@@ -1,14 +1,13 @@
 #!/usr/bin/env python
+"""
+Command-line interface for starting and stopping automatic Crocker Dome movements.
+"""
 
 import argparse
 import os
 import sys
 import time
-
 import signal
-
-
-from threading import Timer
 import time
 
 from datetime import datetime
@@ -16,20 +15,8 @@ import json
 from pathlib import Path
 import pandas as pd
 
+from lib import *
 
-dome_controller = {
-    'device': '/dev/ttyUSB_DOME',
-
-}
-config_fname = 'crocker_control_config.json'
-
-# Create
-obs_plan_dir = Path('obs_plans')
-os.makedirs(obs_plan_dir, exist_ok=True)
-
-def load_config():
-    with open(config_fname, 'r') as fp:
-        return json.load(fp)
 
 def interrupt_handler(sig, frame):
     if sig == signal.SIGINT:
@@ -50,9 +37,6 @@ def sleep_until(target_time, verbose=False):
     if remaining_time > 0:
         time.sleep(remaining_time)
 
-def cleanup_and_exit():
-    print('\nMAIN Exited')
-    sys.exit(0)
 
 
 def start(args):
@@ -71,6 +55,10 @@ def start(args):
         print('Scheduled: ', datetime.fromtimestamp(target_time), end='\t')
         do_scheduled_movement()
 
+def cleanup_and_exit():
+    print('\nMAIN Exited')
+    sys.exit(0)
+
 
 if __name__ == '__main__':
     # Gracefully handle SIGINT
@@ -81,11 +69,9 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(required=False)
 
     # create parser for the init command
-    parser_init = subparsers.add_parser('start',
-                                        description='Start automatic dome rotation')
+    parser_init = subparsers.add_parser('start', description='Start automatic dome rotation')
     parser_init.set_defaults(func=start)
 
-    # Parse known args
     args, unknown = parser.parse_known_args()
 
     # If no subcommand was provided, insert the default
