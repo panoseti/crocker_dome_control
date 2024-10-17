@@ -37,16 +37,22 @@ def do_scheduled_rotation(action, device_file):
     """
     next_direction = action['direction']
     next_rotation_duration = action['rotation_duration_sec']
-    now = datetime.datetime.now(datetime.timezone.utc)
-    print(f"\tRotating {next_direction.upper():>7} for {next_rotation_duration:>3}s @\t{now}\n")
+    start_time = datetime.datetime.now(datetime.timezone.utc)
     try:
-        with serial.Serial(device_file, baudrate=9600, timeout=1, write_timeout=SERIAL_WRITE_TIMEOUT) as ser:
-            if next_direction.lower() == 'left':
-                rotate_left_nsec_and_stop(ser, next_rotation_duration)
-            if next_direction.lower() == 'right':
-                rotate_right_nsec_and_stop(ser, next_rotation_duration)
+        print(f"\tStarted at \t{start_time}")
+        print('\tSIMULATING ROTATION')
+        time.sleep(2)
+        # with serial.Serial(device_file, baudrate=9600, timeout=1, write_timeout=SERIAL_WRITE_TIMEOUT) as ser:
+        #     if next_direction.lower() == 'left':
+        #         rotate_left_nsec_and_stop(ser, next_rotation_duration)
+        #     elif next_direction.lower() == 'right':
+        #         rotate_right_nsec_and_stop(ser, next_rotation_duration)
+        # end_time = datetime.datetime.now(datetime.timezone.utc)
+        # actual_rotation_time = (end_time - start_time).total_seconds()
+        # print(f"\tFinished at \t{end_time} ==> Elapsed time {actual_rotation_time}\n ")
         return True
     except SERIAL_WRITE_TIMEOUT:
+        printf('\tERROR: Serial write timed out')
         return False
 
 
@@ -59,51 +65,45 @@ def sleep_until_scheduled_time(scheduled_time: datetime.datetime):
     """
     now = datetime.datetime.now(datetime.timezone.utc)
     seconds_until_scheduled_time = (scheduled_time - now).total_seconds()
+    print(f'\tScheduled at \t{scheduled_time} ==> Sleep for {seconds_until_scheduled_time:>.5}s')
     if seconds_until_scheduled_time < 0:  # in case of an unexpectedly long delay and action deadline has passed
-        print(f'WARNING: MOVE DEADLINE PASSED BY {seconds_until_scheduled_time}')
+        print(f'WARNING: MOVE DEADLINE PASSED. SKIPPING TO NEXT MOVEMENT.')
         return False
-    print(f'\tSleeping {seconds_until_scheduled_time:>12.5}s until \t{scheduled_time}')
     time.sleep(seconds_until_scheduled_time)
     return True
 
 def start(args):
     config = load_config()
     dome_controller_device_file = config['dome_controller_device_file']
-    # update_interval_seconds = config['update_interval_seconds']
-
-    obs_plan_dir = Path(config['obs_plan_dir'])
-    os.makedirs(obs_plan_dir, exist_ok=True)
-    obs_plan_df = load_obs_plan(obs_plan_dir / config['obs_plan_file'])
-
-    print('Started Updating')
+    obs_plan_df = load_obs_plan(config)
     now = datetime.datetime.now(datetime.timezone.utc)
-    obs_plan_df = obs_plan_df.sort_values(by='utc_timestamp')
     scheduled_after_now = obs_plan_df[obs_plan_df['utc_timestamp'] >= now]
-
     try:
         if len(scheduled_after_now) > 0:
+            print('Starting automatic Crocker Dome movements...')
             for idx in scheduled_after_now.index:
                 next_action = scheduled_after_now.loc[idx]
                 scheduled_time = next_action['utc_timestamp']
 
-                print(f'Movement {idx + 1:>7} of {len(obs_plan_df)}:')
+                print(f'\nMovement {idx + 1:>7} of {len(obs_plan_df)}:')
+                print(f'\tRotate {next_action["direction"].upper():>7} for {next_action["rotation_duration_sec"]}s')
                 valid_sleep = sleep_until_scheduled_time(scheduled_time)
                 if not valid_sleep:
                     continue
                 do_scheduled_rotation(next_action, dome_controller_device_file)
 
-
-
             print('All movements completed')
         else:
-            print('No scheduled actions after the current time')
+            print('Found no scheduled actions after the current time')
     finally:
-        cleanup_and_exit()
+        cleanup_and_exit(verbose=False)
 
 
 
-def cleanup_and_exit():
-    print('\nExited')
+def cleanup_and_exit(verbose=True):
+    if verbose:
+        print('\nExited successfully.')
+    sys.exit(0)
 
 
 if __name__ == '__main__':
@@ -116,7 +116,6 @@ if __name__ == '__main__':
 
     # create parser for the init command
     parser_init = subparsers.add_parser('start', description='Start automatic dome rotation')
-    parser_init.add_argument()
     parser_init.set_defaults(func=start)
 
     args, unknown = parser.parse_known_args()
@@ -128,5 +127,3 @@ if __name__ == '__main__':
         # Parse arguments again with the default subcommand
         args = parser.parse_args()
         args.func(args)
-
-    cleanup_and_exit()

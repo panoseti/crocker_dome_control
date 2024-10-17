@@ -27,18 +27,28 @@ def validate_obs_plan(obs_plan_df: pd.DataFrame):
     :param obs_plan_df:
     :return: None iff obs_plan_df passes all validation checks.
     """
-    if set(obs_plan_df.columns) != {'utc_timestamp', 'rotation_duration_sec', 'direction'}:
+    valid_params = {
+        'columns': {'utc_timestamp', 'rotation_duration_sec', 'direction'},
+        'directions': {'left', 'right'}
+    }
+    if set(obs_plan_df.columns) != valid_params['columns']:
         raise ValueError(f"obs_plan_df does not have the correct columns: {obs_plan_df.columns}")
     elif not np.all(obs_plan_df['rotation_duration_sec'] <= MAX_ROTATION_DURATION_SEC):
         raise ValueError("obs_plan_df contains rotation durations that exceed MAX_ROTATION_DURATION_SEC")
-    elif not np.all(obs_plan_df['rotation_duration_sec'] < 0):
+    elif np.any(obs_plan_df['rotation_duration_sec'] < 0):
         raise ValueError("obs_plan_df contains negative rotation durations")
-    elif not set(obs_plan_df['direction'].unique()) == {'left', 'right'}:
-        raise ValueError("obs_plan_df contains invalid directions. Must only be 'left' or 'right'")
+    elif not set(obs_plan_df['direction'].unique()) == valid_params['directions']:
+        invalid_directions = [d for d in obs_plan_df['direction'].unique() if d not in valid_params['directions']]
+        raise ValueError(f"obs_plan_df contains invalid directions: {invalid_directions}. Must only be 'left' or 'right'")
 
 
-def load_obs_plan(obs_plan_path):
+def load_obs_plan(config):
+    obs_plan_dir = Path(config['obs_plan_dir'])
+    os.makedirs(obs_plan_dir, exist_ok=True)
+    obs_plan_path = obs_plan_dir / config['obs_plan_file']
+
     obs_plan_loaded_df = pd.read_csv(obs_plan_path, index_col=0)
     obs_plan_loaded_df['utc_timestamp'] = pd.to_datetime(obs_plan_loaded_df['utc_timestamp'], utc=True)
+    obs_plan_loaded_df = obs_plan_loaded_df.sort_values(by='utc_timestamp')
     validate_obs_plan(obs_plan_loaded_df)
     return obs_plan_loaded_df
