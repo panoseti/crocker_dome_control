@@ -19,20 +19,25 @@ import serial
 import serial.tools.list_ports
 
 from lib import *
-from rotate import rotate_left_nsec_and_stop, rotate_right_nsec_and_stop, stop_rotation
+from rotate import auto_rotate_to_azimuth, stop_rotation
+
+config = load_config()
+dome_controller_device_file = config['dome_controller_device_file']
+baudrate = config['baudrate']
 
 def interrupt_handler(sig, frame):
     if sig == signal.SIGINT:
-        cleanup_and_exit()
+        cleanup()
+        sys.exit(0)
     else:
-        cleanup_and_exit()
+        cleanup()
+        sys.exit(0)
 
-def do_scheduled_rotation(action, device_file):
+def do_scheduled_rotation(action):
     """
-    Sends the rotation ``action`` to the dome controller ``device_file``
+    Sends the rotation ``action`` to the dome controller.
 
     :param action: row from the obs_plan_df DataFrame describing the movement parameters.
-    :param device_file:
     :return: True if successful, False otherwise.
     """
     next_direction = action['direction']
@@ -42,17 +47,24 @@ def do_scheduled_rotation(action, device_file):
         print(f"\tStarted at \t{start_time}")
         print('\tSIMULATING ROTATION')
         time.sleep(2)
-        # with serial.Serial(device_file, baudrate=9600, timeout=1, write_timeout=SERIAL_WRITE_TIMEOUT) as ser:
-        #     if next_direction.lower() == 'left':
-        #         rotate_left_nsec_and_stop(ser, next_rotation_duration)
-        #     elif next_direction.lower() == 'right':
-        #         rotate_right_nsec_and_stop(ser, next_rotation_duration)
-        # end_time = datetime.datetime.now(datetime.timezone.utc)
-        # actual_rotation_time = (end_time - start_time).total_seconds()
-        # print(f"\tFinished at \t{end_time} ==> Elapsed time {actual_rotation_time}\n ")
+        with serial.Serial(
+                dome_controller_device_file,
+                baudrate=baudrate,
+                timeout=1,
+                write_timeout=SERIAL_WRITE_TIMEOUT
+        ) as ser:
+            ...
+            # auto_rotate_to_azimuth(ser, )
+
+        end_time = datetime.datetime.now(datetime.timezone.utc)
+        actual_rotation_time = (end_time - start_time).total_seconds()
+        print(f"\tFinished at \t{end_time} ==> Elapsed time {actual_rotation_time}\n ")
         return True
-    except SERIAL_WRITE_TIMEOUT:
-        printf('\tERROR: Serial write timed out')
+    except serial.SerialTimeoutException:
+        print(f'\tERROR: Serial connection timed out! Retrying in {RETRY_INTERVAL_SEC}s...')
+        return False
+    except serial.SerialException:
+        print(f'\tERROR: Serial connection error! Retrying in {RETRY_INTERVAL_SEC}s...')
         return False
 
 
@@ -65,21 +77,20 @@ def sleep_until_scheduled_time(scheduled_time: datetime.datetime):
     """
     now = datetime.datetime.now(datetime.timezone.utc)
     seconds_until_scheduled_time = (scheduled_time - now).total_seconds()
-    print(f'\tScheduled at \t{scheduled_time} ==> Sleep for {seconds_until_scheduled_time:>.5}s')
+    print(f'\tScheduled for \t{scheduled_time} ==> Sleep for {seconds_until_scheduled_time:>.5}s')
     if seconds_until_scheduled_time < 0:  # in case of an unexpectedly long delay and action deadline has passed
         print(f'WARNING: MOVE DEADLINE PASSED. SKIPPING TO NEXT MOVEMENT.')
         return False
     time.sleep(seconds_until_scheduled_time)
     return True
 
+
 def start(args):
-    config = load_config()
-    dome_controller_device_file = config['dome_controller_device_file']
     obs_plan_df = load_obs_plan(config)
     now = datetime.datetime.now(datetime.timezone.utc)
     scheduled_after_now = obs_plan_df[obs_plan_df['utc_timestamp'] >= now]
-    try:
-        if len(scheduled_after_now) > 0:
+    if len(scheduled_after_now) > 0:
+        try:
             print('Starting automatic Crocker Dome movements...')
             for idx in scheduled_after_now.index:
                 next_action = scheduled_after_now.loc[idx]
@@ -90,20 +101,43 @@ def start(args):
                 valid_sleep = sleep_until_scheduled_time(scheduled_time)
                 if not valid_sleep:
                     continue
-                do_scheduled_rotation(next_action, dome_controller_device_file)
+                success = do_scheduled_rotation(next_action)
+                # Retry in case connection times out.
+                # for i in range(NUM_RETRY_ATTEMPTS):
+                #     now = datetime.datetime.now(datetime.timezone.utc)
+                #     if success:
+                #         break
+                #     elif (now )
+                #     time.sleep(RETRY_INTERVAL_SEC)
+                #     print(f'\tRetry {i + 1} of {NUM_RETRY_ATTEMPTS}:')
+                #     success = do_scheduled_rotation(next_action)
+                if not success:
+                    print('\tFAILED to do this movement.')
 
             print('All movements completed')
-        else:
-            print('Found no scheduled actions after the current time')
-    finally:
-        cleanup_and_exit(verbose=False)
+        finally:
+            cleanup(stop_rotation=True, verbose=False)
+    else:
+        print('Found no scheduled actions after the current time')
 
 
 
-def cleanup_and_exit(verbose=True):
+def cleanup(stop_rotation=False, verbose=True):
     if verbose:
-        print('\nExited successfully.')
-    sys.exit(0)
+        print('\nExiting:')
+    if stop_rotation:
+        try:
+            print('\tStopping any dome rotation...')
+            with serial.Serial(
+                    dome_controller_device_file,
+                    baudrate=baudrate,
+                    timeout=1,
+                    write_timeout=SERIAL_WRITE_TIMEOUT
+            ) as ser:
+                stop_rotation(ser)
+            print('\tSuccess')
+        except serial.SerialException:
+            print('\tERROR: Failed to verify dome rotation has stopped due to device connection error!')
 
 
 if __name__ == '__main__':
@@ -119,6 +153,9 @@ if __name__ == '__main__':
     parser_init.set_defaults(func=start)
 
     args, unknown = parser.parse_known_args()
+
+    if not os.path.exists(dome_controller_device_file):
+        raise FileNotFoundError(f'"{dome_controller_device_file}" does not exist!')
 
     # If no subcommand was provided, insert the default
     if len(sys.argv) == 1:

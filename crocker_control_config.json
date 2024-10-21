@@ -1,6 +1,7 @@
 {
     "update_interval_seconds": 600,
+    "baudrate": 9600,
     "dome_controller_device_file": "/dev/ttyUSB_DOME",
     "obs_plan_dir": "obs_plans",
-    "obs_plan_file": "obs_plan_TEST"
+    "obs_plan_file": "SAMPLE_obsplan.json"
 }
