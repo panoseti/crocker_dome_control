@@ -27,8 +27,12 @@ MIN_AZ_DIFF = 3
 # "Right" increases the azimuth angle, "Left" decreases it.
 
 def test_auto_rotate(ser):
-
-
+    target_azimuth_angles = [5]
+    initial_az = get_azimuth_angle(ser)
+    target_az = target_azimuth_angles[0]
+    print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
+    final_az = auto_rotate_to_azimuth(ser, target_az, initial_az)
+    print(f'Az after auto: {final_az}')
 
 
 def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azimuth_angle: float, tolerance=2):
@@ -66,7 +70,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azi
     current_azimuth_angle = initial_azimuth_angle
     while continue_rotation(current_azimuth_angle):
         # Wait until packets arrive
-        while continue_rotation() and ser.in_waiting == 0:
+        while continue_rotation(current_azimuth_angle) and ser.in_waiting == 0:
             time.sleep(0.01)
         packet_data = ser.readline().decode('ascii')
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
@@ -76,6 +80,9 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azi
         current_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(current_azimuth_angle)
     stop_rotation(ser)
+    if len(azimuth_angles) == 0:
+        return None
+    return azimuth_angles[-1]
 
 def listen_for_az(ser, listen_duration_sec = 5):
     """Seconds to listen for azimuth angle"""
@@ -240,7 +247,11 @@ def rotation_cli_main():
                 timeout=1,
                 write_timeout=SERIAL_WRITE_TIMEOUT
         ) as ser:
-            do_rotation_command(ser, args.command)
+            try:
+                do_rotation_command(ser, args.command)
+            except Exception as ex:
+                stop_rotation(ser)
+                raise ex
 
 
 if __name__ == "__main__":
