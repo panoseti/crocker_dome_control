@@ -94,14 +94,22 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         azimuth_angles.append(current_azimuth_angle)
         # time.sleep(0.1)
         # ser.write(str.encode("RDP"))
+    print('Stopping dome rotation')
     stop_rotation(ser)
-    print('STOPPING DOME ROTATION')
-    final_azimuth_angle = get_current_az_angle(ser)
-    print(f"final azimuth angle: {final_azimuth_angle}")
+    final_azimuth_angle_prev = get_current_az_angle(ser)
+    final_azimuth_angle_curr = get_current_az_angle(ser)
+    while final_azimuth_angle_prev != final_azimuth_angle_curr:
+        print('WARNING: failed to stop dome rotation. Retrying...')
+        stop_rotation(ser)
+        final_azimuth_angle_prev = final_azimuth_angle_curr
+        final_azimuth_angle_curr = get_current_az_angle(ser)
+
+    print('Dome rotation stopped')
+    print(f"final azimuth angle: {final_azimuth_angle_curr}")
     print(f"azimuthal angles: {azimuth_angles}")
     if len(azimuth_angles) == 0:
         return None
-    return final_azimuth_angle
+    return final_azimuth_angle_curr
 
 def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
     time.sleep(2)
@@ -200,6 +208,7 @@ def stop_rotation(ser: serial.Serial):
     ser.write(str.encode('DRo'))
     time.sleep(2)
     ser.write(str.encode('DLo'))
+    time.sleep(2)
 
 
 """ CLI routines"""
