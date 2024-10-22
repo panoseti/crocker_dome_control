@@ -27,10 +27,9 @@ MIN_AZ_DIFF = 3
 # "Right" increases the azimuth angle, "Left" decreases it.
 
 def test_auto_rotate(ser):
-    target_azimuth_angles = [5]
+    target_azimuth_angles = [30, 15, 45, 0]
     initial_az = get_current_az_angle(ser)
-    for az in target_azimuth_angles:
-        target_az = target_azimuth_angles[0]
+    for target_az in target_azimuth_angles:
         print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
         final_az = auto_rotate_to_azimuth(ser, target_az)
         print(f'Az after auto: {final_az}')
@@ -99,13 +98,12 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         azimuth_angles.append(current_azimuth_angle)
     print('Stopping dome rotation')
     stop_rotation(ser, direction)
-
     # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
     print("Verifying dome rotation has stopped...")
     time_since_stop = datetime.datetime.now(datetime.timezone.utc)
+    time.sleep(2)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
     while (curr_time - time_since_stop).total_seconds() < 3:
-        curr_time = datetime.datetime.now(datetime.timezone.utc)
         if ser.in_waiting != 0:
             packet_data = ser.readline().decode('ascii')
             # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
@@ -115,6 +113,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
                 stop_rotation(ser, direction)
                 time_since_stop = datetime.datetime.now(datetime.timezone.utc)
         time.sleep(0.1)
+        curr_time = datetime.datetime.now(datetime.timezone.utc)
     final_azimuth_angle = get_current_az_angle(ser)
     print('Dome rotation stopped')
     print(f"final azimuth angle: {final_azimuth_angle}")
@@ -259,7 +258,7 @@ def do_rotation_command(ser: serial.Serial, cmd: str):
             stop_rotation(ser)
         elif cmd == 'pos':
             curr_az_angle = get_current_az_angle(ser)
-            print(f'get_azimuth_angle returned {curr_az_angle}')
+            print(f'Current azimuth angle: {curr_az_angle}')
         elif cmd == 'test_auto_rot':
             test_auto_rotate(ser)
         else:
