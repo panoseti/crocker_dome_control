@@ -92,9 +92,9 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=2, from_c
     print(f'Current azimuth angle: {initial_az}')
 
     # Determine which direction requires the less rotation
-    az_diff_rot_right = (target_az - initial_az) % 360
-    az_diff_rot_left = (initial_az - target_az) % 360
-    if abs(az_diff_rot_right) < abs(az_diff_rot_left):
+    az_diff_rot_right = abs((target_az - initial_az) % 360)
+    az_diff_rot_left = abs((initial_az - target_az) % 360)
+    if az_diff_rot_right < az_diff_rot_left:
         rot_dir = 'right'
         angular_dist = az_diff_rot_right
     else:
