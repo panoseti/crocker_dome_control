@@ -75,7 +75,7 @@ def read_az_packet(ser: serial.Serial, ):
             return curr_az
 
 
-def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
+def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3, from_cmd_line=False):
     """
 
     :param ser: Open serial port to the dome controller device.
@@ -83,7 +83,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
     :param az_error_tol: max angular error between target_az and final azimuth angle.
     :return: final azimuth angle.
     """
-    initial_az = get_curr_az(ser)
+    initial_az = get_curr_az(ser, from_cmd_line=from_cmd_line)
     if (initial_az is None) or not (-2 <= initial_az <= 362):
         raise ValueError('last_azimuth_angle must be between 0 and 362')
     if initial_az in [-1, 361]:  # Deal with bug in azimuth reporting code
@@ -158,8 +158,10 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
 
 
 
-def get_curr_az(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
+def get_curr_az(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True, from_cmd_line=False):
     """Queries the dome controller and returns its current azimuth angle."""
+    if from_cmd_line:
+        time.sleep(2)
     ser.write(str.encode("RDP"))
     az_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
@@ -263,10 +265,6 @@ def stop_rotation(ser: serial.Serial, direction='both'):
 
 """ CLI routines"""
 
-def goto_az(ser: serial.Serial, target_az):
-    assert 0 <= target_az < 360, f"Azimuth {target_az} is out of range. Only 0 <= az < 360 are valid."
-    auto_rotate_to_azimuth(ser, target_az)
-
 
 def do_rotation_command(args):
     """
@@ -280,8 +278,8 @@ def do_rotation_command(args):
     dome_controller_device_file = config['dome_controller_device_file']
     baudrate = config['baudrate']
     with serial.Serial(dome_controller_device_file, baudrate=baudrate, timeout=1, write_timeout=SERIAL_WRITE_TIMEOUT) as ser:
+    # with open('crocker_control_config.json', 'r') as ser:
         try:
-            time.sleep(2)  # Wait for serial port to initialize
             if cmd == 'left2sec':
                 rotate_left_nsec_and_stop(ser, 2)
             elif cmd == 'right2sec':
@@ -294,17 +292,23 @@ def do_rotation_command(args):
             elif cmd == 'stop':
                 stop_rotation(ser)
             elif cmd == 'pos':
-                curr_az_angle = get_curr_az(ser)
+                curr_az_angle = get_curr_az(ser, from_cmd_line=True)
                 print(f'Current azimuth angle: {curr_az_angle}')
             elif cmd == 'test_auto_rot':
                 test_auto_rotate(ser)
             elif cmd == 'gotoaz':
-                az = float(args.angle)
-                goto_az(ser, az)
+                if args.val is None:
+                    print(f"Must provide a target azimuth angle 0 <= target_az < 360")
+                    return
+                target_az = float(args.val)
+                if not (0 <= target_az < 360):
+                    print(f"Azimuth {target_az} is out of range. Only 0 <= az < 360 are valid.")
+                    return
+                auto_rotate_to_azimuth(ser, target_az, from_cmd_line=True)
+                print(f'Current azimuth angle: {target_az}')
             else:
                 raise ValueError(f"Unknown rotation command {cmd}")
         except Exception as ex:  # Stop any rotation if we encounter errors.
-            time.sleep(2)
             stop_rotation(ser)
             raise ex
 
@@ -314,6 +318,11 @@ CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'test
 def rotation_cli_main():
     parser = argparse.ArgumentParser(description="Control Crocker rotation via command line.")
     parser.add_argument('cmd', choices=CLI_rotation_commands)
+    parser.add_argument('-val', type=float, help='Either az angle in degrees or rotation duration in seconds.')
+    parser.set_defaults(func=do_rotation_command)
+
+    args = parser.parse_args()
+    args.func(args)
 
     # subparsers = parser.add_subparsers(required=True)
     #
@@ -332,8 +341,6 @@ def rotation_cli_main():
     # parser_az.add_argument('angle', type=float, help = "Azimuth angle in degrees.")
     # parser_az.set_defaults(func=do_rotation_command)
     #
-    args = parser.parse_args()
-    args.func(args)
 
 
 if __name__ == "__main__":
