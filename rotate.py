@@ -28,8 +28,8 @@ MIN_AZ_DIFF = 3
 
 def test_auto_rotate(ser):
     target_azimuth_angles = [30, 15, 45, 0]
-    initial_az = get_current_az_angle(ser)
     for target_az in target_azimuth_angles:
+        initial_az = get_current_az_angle(ser)
         print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
         final_az = auto_rotate_to_azimuth(ser, target_az)
         print(f'Az after auto: {final_az}')
@@ -100,8 +100,13 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     stop_rotation(ser, direction)
     # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
     print("Verifying dome rotation has stopped...")
-    time_since_stop = datetime.datetime.now(datetime.timezone.utc)
     time.sleep(2)
+    time_since_stop = datetime.datetime.now(datetime.timezone.utc)
+    # Clear movement reports during stop operation
+    while ser.in_waiting > 0:
+        packet_data = ser.readline().decode('ascii')
+    time.sleep(2)
+    # Should definitely have no movement packets here
     curr_time = datetime.datetime.now(datetime.timezone.utc)
     while (curr_time - time_since_stop).total_seconds() < 3:
         if ser.in_waiting != 0:
