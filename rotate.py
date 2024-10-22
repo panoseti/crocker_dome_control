@@ -70,6 +70,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     # Wait until dome is at or close to target azimuth angle
     azimuth_angles = []
     current_azimuth_angle = initial_azimuth_angle
+
     def continue_rotation(current_azimuth_angle: float):
         """
         Rotate dome until:
@@ -77,21 +78,18 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
          - rotation amount has exceeded the calculated rotation amount
          - rotation duration has exceeded MAX_ROTATION_DURATION_SEC
         """
-        curr_time = datetime.datetime.now(datetime.timezone.utc)
         if direction == 'right':
             angular_diff = abs((target_azimuth_angle - current_azimuth_angle) % 360)
-        elif direction == 'left':
-            angular_diff = abs((current_azimuth_angle - target_azimuth_angle) % 360)
+            angular_dist = abs((current_azimuth_angle - initial_azimuth_angle) % 360)
         else:
-            angular_diff = 0 # shouldn't get here
+            angular_diff = abs((current_azimuth_angle - target_azimuth_angle) % 360)
+            angular_dist = abs((initial_azimuth_angle - target_azimuth_angle) % 360)
+        print(f"angular_diff = {angular_diff}, angular_dist = {angular_dist}")
         do_continue = not (angular_diff < tolerance)
-        do_continue &= abs((current_azimuth_angle - initial_azimuth_angle) % 360) < max_rotation_degrees
-        do_continue &= (curr_time - start_time).total_seconds() < MAX_ROTATION_DURATION_SEC
+        do_continue &= angular_dist < max_rotation_degrees
         return do_continue
 
     while continue_rotation(current_azimuth_angle):
-        while continue_rotation(current_azimuth_angle) and ser.in_waiting == 0:
-            time.sleep(0.1)
         time.sleep(0.1)
         packet_data = ser.readline().decode('ascii')
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
@@ -103,26 +101,40 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         azimuth_angles.append(current_azimuth_angle)
         # ser.write(str.encode("RDP"))
     print('Stopping dome rotation')
-    time.sleep(0.1)
-    stop_rotation(ser)
-    final_azimuth_angle_prev = get_current_az_angle(ser)
-    final_azimuth_angle_curr = get_current_az_angle(ser)
-    while final_azimuth_angle_prev != final_azimuth_angle_curr:
+    if direction == 'right':
+        ser.write(str.encode('DRo'))
+        ser.flush()
+    else:
+        ser.write(str.encode('DLo'))
+        ser.flush()
+
+    # stop_rotation(ser)
+    # ser.flush()
+    # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
+    time_since_stop = datetime.datetime.now(datetime.timezone.utc)
+    curr_time = datetime.datetime.now(datetime.timezone.utc)
+    while (curr_time - time_since_stop).total_seconds() < 3:
+        packet_data = ser.readline().decode('ascii')
+        # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
+        if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
+            continue
+        # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
+        print(packet_data)
         print('WARNING: failed to stop dome rotation. Retrying...')
         stop_rotation(ser)
-        final_azimuth_angle_prev = final_azimuth_angle_curr
-        final_azimuth_angle_curr = get_current_az_angle(ser)
+        time_since_stop = datetime.datetime.now(datetime.timezone.utc)
 
+    final_azimuth_angle = get_current_az_angle(ser)
     print('Dome rotation stopped')
-    print(f"final azimuth angle: {final_azimuth_angle_curr}")
-    print(f"azimuthal angles: {azimuth_angles}")
+    print(f"final azimuth angle: {final_azimuth_angle}")
     if len(azimuth_angles) == 0:
         return None
-    return final_azimuth_angle_curr
+    return final_azimuth_angle
 
 def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
     time.sleep(2)
     ser.write(str.encode("RDP"))
+    ser.flush()
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
     def continue_listen():
@@ -162,8 +174,10 @@ def rotate_left_nsec_and_stop(ser: serial.Serial, n: int):
         raise ValueError('n was {0} must be between 0 and {1}'.format(n, MAX_ROTATION_DURATION_SEC))
 
     ser.write(str.encode('DLO'))
+    ser.flush()
     time.sleep(n)
     ser.write(str.encode('DLo'))
+    ser.flush()
 
 
 def rotate_right_nsec_and_stop(ser: serial.Serial, n: int):
@@ -178,8 +192,10 @@ def rotate_right_nsec_and_stop(ser: serial.Serial, n: int):
     if not 0 <= n < MAX_ROTATION_DURATION_SEC:
         raise ValueError('n was {0} must be between 0 and {1}'.format(n, MAX_ROTATION_DURATION_SEC))
     ser.write(str.encode('DRO'))
+    ser.flush()
     time.sleep(n)
     ser.write(str.encode('DRo'))
+    ser.flush()
 
 
 """ Manually start & stop dome rotation """
@@ -194,6 +210,7 @@ def start_rotate_left(ser: serial.Serial):
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port
     """
     ser.write(str.encode('DLO'))
+    ser.flush()
 
 
 def start_rotate_right(ser: serial.Serial):
@@ -205,6 +222,7 @@ def start_rotate_right(ser: serial.Serial):
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port
     """
     ser.write(str.encode('DRO'))
+    ser.flush()
 
 
 def stop_rotation(ser: serial.Serial):
@@ -215,9 +233,10 @@ def stop_rotation(ser: serial.Serial):
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port.
     """
     ser.write(str.encode('DRo'))
+    ser.flush()
     time.sleep(2)
     ser.write(str.encode('DLo'))
-    time.sleep(2)
+    ser.flush()
 
 
 """ CLI routines"""
