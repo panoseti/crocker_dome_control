@@ -32,7 +32,6 @@ def test_auto_rotate(ser):
         initial_az = get_current_az_angle(ser)
         print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
         final_az = auto_rotate_to_azimuth(ser, target_az)
-        print(f'Az after auto: {final_az}')
     print('TEST DONE')
 
 
@@ -59,7 +58,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         print(f'Target position within {tolerance} deg of target: diff = {max_rotation_degrees}')
         return initial_azimuth_angle
     # Start rotation
-    print(f"STARTING DOME ROTATION {direction}")
+    print(f"Starting dome rotation {direction.upper()} {max_rotation_degrees} degrees")
     if direction == 'right':
         start_rotate_right(ser)
     elif direction == 'left':
@@ -107,29 +106,23 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     print("Verifying dome rotation has stopped...")
     time.sleep(2)
     time_since_stop = datetime.datetime.now(datetime.timezone.utc)
-    # Clear movement reports during stop operation
-    while ser.in_waiting > 0:
-        try:
-            packet_data = ser.readline()
-            packet_data = packet_data.decode("ascii")
-        except UnicodeDecodeError as ude:
-            print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
-            continue
-    time.sleep(2)
-    # Should definitely have no movement packets here
     curr_time = datetime.datetime.now(datetime.timezone.utc)
+    old_rot_packet = True
     while (curr_time - time_since_stop).total_seconds() < 3:
         if ser.in_waiting > 0:
             try:
                 packet_data = ser.readline()
                 packet_data = packet_data.decode("ascii")
             except UnicodeDecodeError as ude:
-                print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
+                print(f'\tFAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
                 continue
             print(packet_data)
             # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
             if "az" in packet_data.lower() or "rdp" in packet_data.lower():
-                print('WARNING: failed to stop dome rotation. Retrying...')
+                if old_rot_packet:
+                    old_rot_packet = False
+                    continue
+                print('\tWARNING: failed to stop dome rotation. Retrying...')
                 stop_rotation(ser, direction)
                 time_since_stop = datetime.datetime.now(datetime.timezone.utc)
         time.sleep(0.1)
