@@ -57,7 +57,7 @@ def get_continue_rotation_fn(target_az, initial_az, rot_dir, angle_diff_thresh, 
         return do_continue
     return continue_rotation
 
-def read_az_packet(ser: serial.Serial):
+def read_az_packet(ser: serial.Serial, ):
     """Read one packet from the serial port ser.
     :return: azimuth angle if this is a az packet and None otherwise.
     """
@@ -111,7 +111,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
 
     # Start rotation
     print(f"Starting dome rotation: {rot_dir.upper()} {angular_dist} degrees")
-    rot_duration = max(2, (angular_dist - az_error_to_stop_fast_rotation) / 2)
+    rot_duration = max(2, (angular_dist - az_error_tol) / 2)
     print('Rotating dome for {0} seconds'.format(rot_duration))
     if rot_dir == 'right':
         rotate_right_nsec_and_stop(ser, rot_duration)
@@ -123,14 +123,24 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
     # Wait until dome is at or close to target azimuth angle
     az_angles = []
     curr_az = initial_az
-    while continue_rotation(curr_az):
-        if ser.in_waiting > 0:
-            az_data = read_az_packet(ser)
-            if az_data is not None:
-                curr_az = az_data
-                az_angles.append(curr_az)
-                print(f"Current azimuth angle: {curr_az}")
-        time.sleep(0.1)
+    # Clear backlog of movement data.
+    time.sleep(2)
+    while ser.in_waiting > 0:
+        az_data = read_az_packet(ser)
+        if az_data is not None:
+            curr_az = az_data
+            az_angles.append(curr_az)
+            print(f"Current azimuth angle: {curr_az}")
+    # while continue_rotation(curr_az):
+    #     if (curr_time - start_time).total_seconds() >= timeout:
+    #         break
+    #     if ser.in_waiting > 0:
+    #         az_data = read_az_packet(ser)
+    #         if az_data is not None:
+    #             curr_az = az_data
+    #             az_angles.append(curr_az)
+    #             print(f"Current azimuth angle: {curr_az}")
+    #     time.sleep(0.1)
     print('Stopping dome rotation')
     stop_rotation(ser, rot_dir)
     ser.reset_input_buffer()
