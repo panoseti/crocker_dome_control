@@ -17,7 +17,7 @@ from serial.serialutil import SerialTimeoutException
 
 from lib import *
 
-CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'get_az', 'test_auto_rot']
+CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'pos', 'test_auto_rot']
 MAX_ROTATION_DURATION_SEC = 10
 MIN_AZ_DIFF = 3
 
@@ -261,7 +261,7 @@ def do_rotation_command(ser: serial.Serial, cmd: str):
             start_rotate_right(ser)
         elif cmd == 'stop':
             stop_rotation(ser)
-        elif cmd == 'get_az':
+        elif cmd == 'pos':
             curr_az_angle = get_current_az_angle(ser)
             print(f'get_azimuth_angle returned {curr_az_angle}')
         elif cmd == 'test_auto_rot':
