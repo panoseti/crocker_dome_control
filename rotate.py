@@ -80,7 +80,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
             angular_dist = abs((current_azimuth_angle - initial_azimuth_angle) % 360)
         else:
             angular_diff = abs((current_azimuth_angle - target_azimuth_angle) % 360)
-            angular_dist = abs((initial_azimuth_angle - target_azimuth_angle) % 360)
+            angular_dist = abs((initial_azimuth_angle - current_azimuth_angle) % 360)
         print(f"angular_diff = {angular_diff}, angular_dist = {angular_dist}")
         do_continue = not (angular_diff < tolerance)
         do_continue &= angular_dist < max_rotation_degrees
