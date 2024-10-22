@@ -75,7 +75,7 @@ def read_az_packet(ser: serial.Serial, ):
             return curr_az
 
 
-def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3, from_cmd_line=False):
+def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=2, from_cmd_line=False):
     """
 
     :param ser: Open serial port to the dome controller device.
@@ -100,7 +100,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3, from_c
         angular_dist = az_diff_rot_left
     # Do no rotation if current dome position is close enough to target_az
     if angular_dist < az_error_tol:
-        print(f'Target position within {az_error_tol} deg of target: diff = {angular_dist}')
+        print(f'Current position within error tolerance {az_error_tol} deg of target_az: diff = {angular_dist}')
         return initial_az
 
     # Get boolean-valued function controlling when to stop dome rotation
