@@ -12,7 +12,7 @@ Before using any of the scripts, make sure to activate this new environment with
 # Example Usage
 The `gotoaz` command can be used to rotates the dome to a target azimuth position:
 ```bash
-./rotate gotoaz -val 15  # Rotate dome so its azimuth is 15 degrees
+./rotate.py gotoaz -val 15  # Rotate dome so its azimuth is 15 degrees
 ```
 
 TODO: make calls to gotoaz automatic and scheduled with an observing plan document.

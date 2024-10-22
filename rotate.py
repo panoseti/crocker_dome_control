@@ -102,7 +102,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=2, from_c
         angular_dist = az_diff_rot_left
     # Do no rotation if current dome position is close enough to target_az
     if angular_dist < az_error_tol:
-        print(f'Current position within minimum angular move distance of {az_error_tol} deg of target_az.')
+        print(f"Distance between target_az and current az is within the dome's minimum angular rotation step: {az_error_tol} deg.")
         return initial_az
 
     # Get boolean-valued function controlling when to stop dome rotation
@@ -132,8 +132,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=2, from_c
         if az_data is not None:
             curr_az = az_data
             az_angles.append(curr_az)
-            print(f"Current azimuth angle: {curr_az}", end='\r')
-    print(f"Last azimuth angle: {curr_az}")
+    print(f"New azimuth position: {curr_az}")
     print('Stopping dome rotation:')
     stop_rotation(ser, rot_dir)
     ser.reset_input_buffer()
@@ -315,7 +314,7 @@ def do_rotation_command(args):
             raise ex
 
 
-CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'test_auto_rot', 'gotoaz']
+CLI_rotation_commands = ['gotoaz', 'pos', 'stop', 'left2sec', 'right2sec', 'left', 'right', 'test_auto_rot']
 
 def rotation_cli_main():
     parser = argparse.ArgumentParser(description="Control Crocker rotation via command line.")
