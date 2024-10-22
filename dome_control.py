@@ -53,8 +53,11 @@ def do_scheduled_rotation(action):
                 timeout=1,
                 write_timeout=SERIAL_WRITE_TIMEOUT
         ) as ser:
-            ...
-            # auto_rotate_to_azimuth(ser, )
+            try:
+                print('\tSending action')
+                # auto_rotate_to_azimuth(ser, )
+            finally:
+                stop_rotation(ser)
 
         end_time = datetime.datetime.now(datetime.timezone.utc)
         actual_rotation_time = (end_time - start_time).total_seconds()

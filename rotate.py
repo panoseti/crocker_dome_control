@@ -28,14 +28,17 @@ MIN_AZ_DIFF = 3
 
 def test_auto_rotate(ser):
     target_azimuth_angles = [5]
-    initial_az = get_azimuth_angle(ser)
-    target_az = target_azimuth_angles[0]
-    print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
-    final_az = auto_rotate_to_azimuth(ser, target_az, initial_az)
-    print(f'Az after auto: {final_az}')
+    initial_az = get_current_az_angle(ser)
+    for az in target_azimuth_angles:
+        target_az = target_azimuth_angles[0]
+        print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
+        final_az = auto_rotate_to_azimuth(ser, target_az)
+        print(f'Az after auto: {final_az}')
+    print('TEST DONE')
 
 
-def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azimuth_angle: float, tolerance=2):
+def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2):
+    initial_azimuth_angle = get_current_az_angle(ser)
     if (initial_azimuth_angle is None) or not (-2 <= initial_azimuth_angle <= 362):
         raise ValueError('last_azimuth_angle must be between 0 and 362')
 
@@ -47,11 +50,20 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azi
     az_diff_rot_right = (target_azimuth_angle - initial_azimuth_angle) % 360
     az_diff_rot_left = (initial_azimuth_angle - target_azimuth_angle) % 360
     if abs(az_diff_rot_right) < abs(az_diff_rot_left):
-        next_direction = 'right'
+        direction = 'right'
         max_rotation_degrees = az_diff_rot_right
     else:
-        next_direction = 'left'
+        direction = 'left'
         max_rotation_degrees = az_diff_rot_left
+    # Start rotation
+    start_time = datetime.datetime.now(datetime.timezone.utc)
+    if direction == 'right':
+        start_rotate_right(ser)
+    elif direction == 'left':
+        start_rotate_left(ser)
+    # Wait until dome is at or close to target azimuth angle
+    azimuth_angles = []
+    current_azimuth_angle = initial_azimuth_angle
     def continue_rotation(current_azimuth_angle: float):
         """
         Rotate dome until:
@@ -65,14 +77,12 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azi
         do_continue &= (curr_time - start_time).total_seconds() < MAX_ROTATION_DURATION_SEC
         return do_continue
 
-    start_time = datetime.datetime.now(datetime.timezone.utc)
-    azimuth_angles = []
-    current_azimuth_angle = initial_azimuth_angle
     while continue_rotation(current_azimuth_angle):
         # Wait until packets arrive
         while continue_rotation(current_azimuth_angle) and ser.in_waiting == 0:
             time.sleep(0.01)
         packet_data = ser.readline().decode('ascii')
+        print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
         if "az" not in packet_data.lower():
             continue
@@ -84,7 +94,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, initial_azi
         return None
     return azimuth_angles[-1]
 
-def listen_for_az(ser, listen_duration_sec = 5):
+def listen_for_az(ser, listen_duration_sec = 3):
     """Seconds to listen for azimuth angle"""
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
@@ -98,6 +108,7 @@ def listen_for_az(ser, listen_duration_sec = 5):
         while continue_listen() and ser.in_waiting == 0:
             time.sleep(0.01)
         packet_data = ser.readline().decode('ascii')
+        print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
         if "az" not in packet_data.lower():
             continue
@@ -110,12 +121,15 @@ def listen_for_az(ser, listen_duration_sec = 5):
     return azimuth_angles[-1]
 
 
-def get_azimuth_angle(ser: serial.Serial):
-    rotate_left_nsec_and_stop(2)
-    time.sleep(2)
-    rotate_right_nsec_and_stop(2)
+def get_current_az_angle(ser: serial.Serial):
+    ser.write(str.encode("RDP"))
     last_azimuth_angle = listen_for_az(ser)
     return last_azimuth_angle
+    # rotate_left_nsec_and_stop(2)
+    # time.sleep(2)
+    # rotate_right_nsec_and_stop(2)
+    # last_azimuth_angle = listen_for_az(ser)
+    # return last_azimuth_angle
 
 
 
@@ -215,7 +229,7 @@ def do_rotation_command(ser: serial.Serial, cmd: str):
         elif cmd == 'stop':
             stop_rotation(ser)
         elif cmd == 'get_az':
-            curr_az_angle = get_azimuth_angle(ser)
+            curr_az_angle = get_current_az_angle(ser)
             print(f'get_azimuth_angle returned {curr_az_angle}')
         elif cmd == 'test_auto_rot':
             test_auto_rotate(ser)
