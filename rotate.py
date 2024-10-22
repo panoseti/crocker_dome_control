@@ -55,9 +55,13 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     else:
         direction = 'left'
         max_rotation_degrees = az_diff_rot_left
+
+    if max_rotation_degrees < tolerance:
+        print(f'Target position within {tolerance} deg of target: diff = {max_rotation_degrees}')
+        return initial_azimuth_angle
     # Start rotation
     start_time = datetime.datetime.now(datetime.timezone.utc)
-    time.sleep(2)
+    time.sleep(1)
     print(f"STARTING DOME ROTATION {direction}")
     if direction == 'right':
         start_rotate_right(ser)
@@ -81,11 +85,11 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
 
     while continue_rotation(current_azimuth_angle):
         packet_data = ser.readline().decode('ascii')
-        print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
         if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
             continue
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
+        print(packet_data)
         current_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(current_azimuth_angle)
         # time.sleep(0.1)
@@ -110,11 +114,11 @@ def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_firs
 
     while continue_listen():
         packet_data = ser.readline().decode('ascii')
-        print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
         if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
             continue
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
+        print(packet_data)
         last_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(last_azimuth_angle)
         if return_on_first_az:
