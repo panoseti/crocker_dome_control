@@ -155,7 +155,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
 
 def get_curr_az(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
     """Queries the dome controller and returns its current azimuth angle."""
-    ser.write(str.encode("RDP"))
+    ser.write(str.encode("RDP\n"))
     ser.flush()
     az_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
@@ -192,10 +192,10 @@ def rotate_left_nsec_and_stop(ser: serial.Serial, n: int):
     if not 0 <= n < MAX_ROTATION_DURATION_SEC:
         raise ValueError('n was {0} must be between 0 and {1}'.format(n, MAX_ROTATION_DURATION_SEC))
 
-    ser.write(str.encode('DLO'))
+    ser.write(str.encode('DLO\n'))
     ser.flush()
     time.sleep(n)
-    ser.write(str.encode('DLo'))
+    ser.write(str.encode('DLo\n'))
     ser.flush()
 
 
@@ -210,10 +210,10 @@ def rotate_right_nsec_and_stop(ser: serial.Serial, n: int):
     """
     if not 0 <= n < MAX_ROTATION_DURATION_SEC:
         raise ValueError('n was {0} must be between 0 and {1}'.format(n, MAX_ROTATION_DURATION_SEC))
-    ser.write(str.encode('DRO'))
+    ser.write(str.encode('DRO\n'))
     ser.flush()
     time.sleep(n)
-    ser.write(str.encode('DRo'))
+    ser.write(str.encode('DRo\n'))
     ser.flush()
 
 
@@ -228,7 +228,7 @@ def start_rotate_left(ser: serial.Serial):
     :param ser: open serial connection to the dome controller.
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port
     """
-    ser.write(str.encode('DLO'))
+    ser.write(str.encode('DLO\n'))
     ser.flush()
 
 
@@ -240,7 +240,7 @@ def start_rotate_right(ser: serial.Serial):
     :param ser: open serial connection to the dome controller.
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port
     """
-    ser.write(str.encode('DRO'))
+    ser.write(str.encode('DRO\n'))
     ser.flush()
 
 
@@ -253,16 +253,16 @@ def stop_rotation(ser: serial.Serial, direction='both'):
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port.
     """
     if direction == 'right':
-        ser.write(str.encode('DRo'))
+        ser.write(str.encode('DRo\n'))
         ser.flush()
     elif direction == 'left':
-        ser.write(str.encode('DLo'))
+        ser.write(str.encode('DLo\n'))
         ser.flush()
     else:
-        ser.write(str.encode('DRo'))
+        ser.write(str.encode('DRo\n'))
         ser.flush()
         time.sleep(2)
-        ser.write(str.encode('DLo'))
+        ser.write(str.encode('DLo\n'))
         ser.flush()
 
 
@@ -318,7 +318,7 @@ def rotation_cli_main():
         with serial.Serial(
                 dome_controller_device_file,
                 baudrate=baudrate,
-                timeout=1,
+                timeout=5,
                 write_timeout=SERIAL_WRITE_TIMEOUT
         ) as ser:
             try:

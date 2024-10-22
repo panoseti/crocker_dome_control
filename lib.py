@@ -11,7 +11,7 @@ import pandas as pd
 config_fname = 'crocker_control_config.json'
 
 
-SERIAL_WRITE_TIMEOUT = 1
+SERIAL_WRITE_TIMEOUT = 5
 
 NUM_RETRY_ATTEMPTS = 10
 RETRY_INTERVAL_SEC = 10
