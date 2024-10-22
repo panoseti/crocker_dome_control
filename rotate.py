@@ -81,21 +81,27 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         else:
             angular_diff = abs((current_azimuth_angle - target_azimuth_angle) % 360)
             angular_dist = abs((initial_azimuth_angle - current_azimuth_angle) % 360)
-        print(f"angular_diff = {angular_diff}, angular_dist = {angular_dist}")
+        # print(f"angular_diff = {angular_diff}, angular_dist = {angular_dist}")
         do_continue = not (angular_diff < tolerance)
         do_continue &= angular_dist < max_rotation_degrees
         return do_continue
 
     while continue_rotation(current_azimuth_angle):
+        if ser.in_waiting > 0:
+            time.sleep(0.2) # Wait for all data to arrive?
+            try:
+                packet_data = ser.readline()
+                packet_data = packet_data.decode("utf-8")
+            except UnicodeDecodeError as ude:
+                print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
+                continue
+            # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
+            if "az" in packet_data.lower() or "rdp" in packet_data.lower():
+                current_azimuth_angle = float(packet_data.lower().split("=")[1])
+                print(f"Current azimuth angle: {current_azimuth_angle}", end='\r')
+                azimuth_angles.append(current_azimuth_angle)
         time.sleep(0.1)
-        packet_data = ser.readline().decode('ascii')
-        # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-        if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
-            continue
-        # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
-        current_azimuth_angle = float(packet_data.lower().split("=")[1])
-        print(f"Current azimuth angle: {current_azimuth_angle}")
-        azimuth_angles.append(current_azimuth_angle)
+    print(f"Current azimuth angle: {current_azimuth_angle}")
     print('Stopping dome rotation')
     stop_rotation(ser, direction)
     # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
@@ -104,13 +110,23 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     time_since_stop = datetime.datetime.now(datetime.timezone.utc)
     # Clear movement reports during stop operation
     while ser.in_waiting > 0:
-        packet_data = ser.readline().decode('ascii')
+        try:
+            packet_data = ser.readline()
+            packet_data = packet_data.decode("utf-8")
+        except UnicodeDecodeError as ude:
+            print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
+            continue
     time.sleep(2)
     # Should definitely have no movement packets here
     curr_time = datetime.datetime.now(datetime.timezone.utc)
     while (curr_time - time_since_stop).total_seconds() < 3:
-        if ser.in_waiting != 0:
-            packet_data = ser.readline().decode('ascii')
+        if ser.in_waiting > 0:
+            try:
+                packet_data = ser.readline()
+                packet_data = packet_data.decode("utf-8")
+            except UnicodeDecodeError as ude:
+                print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
+                continue
             # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
             if "az" in packet_data.lower() or "rdp" in packet_data.lower():
                 print(packet_data)
@@ -133,16 +149,21 @@ def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_firs
     curr_time = datetime.datetime.now(datetime.timezone.utc)
     while (curr_time - start_time).total_seconds() < listen_timeout:
         curr_time = datetime.datetime.now(datetime.timezone.utc)
-        if ser.in_waiting != 0:
-            packet_data = ser.readline().decode('ascii')
-            # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-            if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
+        if ser.in_waiting > 0:
+            time.sleep(0.2)
+            try:
+                packet_data = ser.readline()
+                packet_data = packet_data.decode("utf-8")
+            except UnicodeDecodeError as ude:
+                print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
                 continue
-            # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
-            last_azimuth_angle = float(packet_data.lower().split("=")[1])
-            azimuth_angles.append(last_azimuth_angle)
-            if return_on_first_az:
-                break
+            # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
+            if "az" in packet_data.lower() or "rdp" in packet_data.lower():
+                # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
+                last_azimuth_angle = float(packet_data.lower().split("=")[1])
+                azimuth_angles.append(last_azimuth_angle)
+                if return_on_first_az:
+                    break
         time.sleep(0.1)
     if len(azimuth_angles) == 0:
         return None
