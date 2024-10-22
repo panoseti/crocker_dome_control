@@ -135,7 +135,6 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
 def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
     ser.write(str.encode("RDP"))
     ser.flush()
-    time.sleep(2)
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
@@ -308,6 +307,7 @@ def rotation_cli_main():
                 write_timeout=SERIAL_WRITE_TIMEOUT
         ) as ser:
             try:
+                time.sleep(2)
                 do_rotation_command(ser, args.command)
             except Exception as ex:
                 time.sleep(2)
