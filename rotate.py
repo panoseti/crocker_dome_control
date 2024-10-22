@@ -91,17 +91,16 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
             time.sleep(0.2) # Wait for all data to arrive?
             try:
                 packet_data = ser.readline()
-                packet_data = packet_data.decode("utf-8")
+                packet_data = packet_data.decode("ascii")
             except UnicodeDecodeError as ude:
                 print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
                 continue
             # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
             if "az" in packet_data.lower() or "rdp" in packet_data.lower():
                 current_azimuth_angle = float(packet_data.lower().split("=")[1])
-                print(f"Current azimuth angle: {current_azimuth_angle}", end='\r')
+                print(f"Current azimuth angle: {current_azimuth_angle}")
                 azimuth_angles.append(current_azimuth_angle)
         time.sleep(0.1)
-    print(f"Current azimuth angle: {current_azimuth_angle}")
     print('Stopping dome rotation')
     stop_rotation(ser, direction)
     # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
@@ -112,7 +111,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     while ser.in_waiting > 0:
         try:
             packet_data = ser.readline()
-            packet_data = packet_data.decode("utf-8")
+            packet_data = packet_data.decode("ascii")
         except UnicodeDecodeError as ude:
             print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
             continue
@@ -123,13 +122,13 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         if ser.in_waiting > 0:
             try:
                 packet_data = ser.readline()
-                packet_data = packet_data.decode("utf-8")
+                packet_data = packet_data.decode("ascii")
             except UnicodeDecodeError as ude:
                 print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
                 continue
+            print(packet_data)
             # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
             if "az" in packet_data.lower() or "rdp" in packet_data.lower():
-                print(packet_data)
                 print('WARNING: failed to stop dome rotation. Retrying...')
                 stop_rotation(ser, direction)
                 time_since_stop = datetime.datetime.now(datetime.timezone.utc)
@@ -141,9 +140,9 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     return final_azimuth_angle
 
 def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
-    time.sleep(2)
     ser.write(str.encode("RDP"))
     ser.flush()
+    time.sleep(2)
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
@@ -153,7 +152,7 @@ def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_firs
             time.sleep(0.2)
             try:
                 packet_data = ser.readline()
-                packet_data = packet_data.decode("utf-8")
+                packet_data = packet_data.decode("ascii")
             except UnicodeDecodeError as ude:
                 print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
                 continue
