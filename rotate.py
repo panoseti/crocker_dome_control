@@ -10,6 +10,7 @@
 import datetime
 import argparse
 import time
+import sys
 
 import serial
 import serial.tools.list_ports
@@ -17,7 +18,6 @@ from serial.serialutil import SerialTimeoutException
 
 from lib import *
 
-CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'pos', 'test_auto_rot']
 MAX_ROTATION_DURATION_SEC = 20
 MIN_AZ_DIFF = 3
 
@@ -130,22 +130,12 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
         if az_data is not None:
             curr_az = az_data
             az_angles.append(curr_az)
-            print(f"Current azimuth angle: {curr_az}")
-    # while continue_rotation(curr_az):
-    #     if (curr_time - start_time).total_seconds() >= timeout:
-    #         break
-    #     if ser.in_waiting > 0:
-    #         az_data = read_az_packet(ser)
-    #         if az_data is not None:
-    #             curr_az = az_data
-    #             az_angles.append(curr_az)
-    #             print(f"Current azimuth angle: {curr_az}")
-    #     time.sleep(0.1)
-    print('Stopping dome rotation')
+            print(f"Current azimuth angle: {curr_az}", end='\r')
+    print('Stopping dome rotation:')
     stop_rotation(ser, rot_dir)
     ser.reset_input_buffer()
     # Wait 4 seconds and observe no movement reports to verify that stop was successful.
-    print("Verifying dome rotation has stopped...")
+    print("\tVerifying dome rotation has stopped...")
     time_since_stop = datetime.datetime.now(datetime.timezone.utc)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
     while (curr_time - time_since_stop).total_seconds() < 4:
@@ -158,13 +148,15 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
                 time_since_stop = datetime.datetime.now(datetime.timezone.utc)
                 curr_az = az_data
                 az_angles.append(curr_az)
-                print(f"Current azimuth angle: {curr_az}")
+                print(f"\tCurrent azimuth angle: {curr_az}")
         time.sleep(0.1)
         curr_time = datetime.datetime.now(datetime.timezone.utc)
     final_azimuth_angle = get_curr_az(ser)
-    print('Dome rotation stopped')
+    print('\tDome rotation stopped.')
     print(f"Final azimuth angle: {final_azimuth_angle}")
     return final_azimuth_angle
+
+
 
 def get_curr_az(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
     """Queries the dome controller and returns its current azimuth angle."""
@@ -271,66 +263,77 @@ def stop_rotation(ser: serial.Serial, direction='both'):
 
 """ CLI routines"""
 
+def goto_az(ser: serial.Serial, target_az):
+    assert 0 <= target_az < 360, f"Azimuth {target_az} is out of range. Only 0 <= az < 360 are valid."
+    auto_rotate_to_azimuth(ser, target_az)
 
-def do_rotation_command(ser: serial.Serial, cmd: str):
+
+def do_rotation_command(args):
     """
     Sends the command 'cmd' to the dome controller.
 
     :param cmd: command to send to the dome controller. Must be listed in CLI_rotation_commands.
     """
-    try:
-        # 2-second dome rotation.
-        if cmd == 'left2sec':
-            rotate_left_nsec_and_stop(ser, 2)
-        elif cmd == 'right2sec':
-            rotate_right_nsec_and_stop(ser, 2)
-        # Manually-controlled dome rotation
-        elif cmd == 'left':
-            start_rotate_left(ser)
-        elif cmd == 'right':
-            start_rotate_right(ser)
-        elif cmd == 'stop':
+    # Open serial port (as specified in the config file) then do requested command.
+    cmd = args.cmd
+    config = load_config()
+    dome_controller_device_file = config['dome_controller_device_file']
+    baudrate = config['baudrate']
+    with serial.Serial(dome_controller_device_file, baudrate=baudrate, timeout=1, write_timeout=SERIAL_WRITE_TIMEOUT) as ser:
+        try:
+            time.sleep(2)  # Wait for serial port to initialize
+            if cmd == 'left2sec':
+                rotate_left_nsec_and_stop(ser, 2)
+            elif cmd == 'right2sec':
+                rotate_right_nsec_and_stop(ser, 2)
+            # Manually-controlled dome rotation
+            elif cmd == 'left':
+                start_rotate_left(ser)
+            elif cmd == 'right':
+                start_rotate_right(ser)
+            elif cmd == 'stop':
+                stop_rotation(ser)
+            elif cmd == 'pos':
+                curr_az_angle = get_curr_az(ser)
+                print(f'Current azimuth angle: {curr_az_angle}')
+            elif cmd == 'test_auto_rot':
+                test_auto_rotate(ser)
+            elif cmd == 'gotoaz':
+                az = float(args.angle)
+                goto_az(ser, az)
+            else:
+                raise ValueError(f"Unknown rotation command {cmd}")
+        except Exception as ex:  # Stop any rotation if we encounter errors.
+            time.sleep(2)
             stop_rotation(ser)
-        elif cmd == 'pos':
-            curr_az_angle = get_curr_az(ser)
-            print(f'Current azimuth angle: {curr_az_angle}')
-        elif cmd == 'test_auto_rot':
-            test_auto_rotate(ser)
-        else:
-            raise ValueError(f"Unknown rotation command {cmd}")
-    except SerialTimeoutException as ste:
-        print(f'ROTATION FAILED! Error message: {ste}')
-        raise ste
+            raise ex
 
-    "Azimuth = {NUM HERE}"
+
+CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'test_auto_rot', 'gotoaz']
 
 def rotation_cli_main():
-    parser = argparse.ArgumentParser(description="Control the DOME rotation via command line.")
-    parser.add_argument('command', choices=CLI_rotation_commands, help="Choose a command to send to the DOME.")
-    args = parser.parse_args()
+    parser = argparse.ArgumentParser(description="Control Crocker rotation via command line.")
+    parser.add_argument('cmd', choices=CLI_rotation_commands)
 
-    if not args.command:
-        raise ValueError(f"No command was specified")
-    elif args.command not in CLI_rotation_commands:
-        raise ValueError(f"Unknown rotation command {args.command}")
-    else:
-        # Open serial port (as specified in the config file) then do requested command.
-        config = load_config()
-        dome_controller_device_file = config['dome_controller_device_file']
-        baudrate = config['baudrate']
-        with serial.Serial(
-                dome_controller_device_file,
-                baudrate=baudrate,
-                timeout=1,
-                write_timeout=SERIAL_WRITE_TIMEOUT
-        ) as ser:
-            try:
-                time.sleep(2)
-                do_rotation_command(ser, args.command)
-            except Exception as ex:
-                time.sleep(2)
-                stop_rotation(ser)
-                raise ex
+    # subparsers = parser.add_subparsers(required=True)
+    #
+    # # No argument commands
+    # parser_man = subparsers.add_parser('man', description='manual dome commands')
+    # parser_man.add_argument('cmd', choices=CLI_rotation_commands,
+    #                         help = "Choose a command to send to the DOME.",
+    #                         type=str)
+    # parser_man.set_defaults(func=do_rotation_command)
+    #
+    # # Angle based dome commands taking one argument
+    # parser_az = subparsers.add_parser('az', description='azimuth-based dome commands')
+    # parser_az.add_argument('cmd', choices=['gotoaz'],
+    #                         help = "Choose a command to send to the DOME.",
+    #                         type=str)
+    # parser_az.add_argument('angle', type=float, help = "Azimuth angle in degrees.")
+    # parser_az.set_defaults(func=do_rotation_command)
+    #
+    args = parser.parse_args()
+    args.func(args)
 
 
 if __name__ == "__main__":
