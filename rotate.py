@@ -89,6 +89,8 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=2, from_c
     if initial_az in [-1, 361]:  # Deal with bug in azimuth reporting code
         initial_az = 1
 
+    print(f'Current azimuth angle: {initial_az}')
+
     # Determine which direction requires the less rotation
     az_diff_rot_right = (target_az - initial_az) % 360
     az_diff_rot_left = (initial_az - target_az) % 360
@@ -305,7 +307,6 @@ def do_rotation_command(args):
                     print(f"Azimuth {target_az} is out of range. Only 0 <= az < 360 are valid.")
                     return
                 auto_rotate_to_azimuth(ser, target_az, from_cmd_line=True)
-                print(f'Current azimuth angle: {target_az}')
             else:
                 raise ValueError(f"Unknown rotation command {cmd}")
         except Exception as ex:  # Stop any rotation if we encounter errors.
