@@ -37,7 +37,7 @@ def test_auto_rotate(ser):
     print('TEST DONE')
 
 
-def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2):
+def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3):
     initial_azimuth_angle = get_current_az_angle(ser)
     if (initial_azimuth_angle is None) or not (-2 <= initial_azimuth_angle <= 362):
         raise ValueError('last_azimuth_angle must be between 0 and 362')
@@ -57,6 +57,8 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2
         max_rotation_degrees = az_diff_rot_left
     # Start rotation
     start_time = datetime.datetime.now(datetime.timezone.utc)
+    time.sleep(1)
+    print(f"STARTING DOME ROTATION {direction}")
     if direction == 'right':
         start_rotate_right(ser)
     elif direction == 'left':
@@ -72,15 +74,12 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2
          - rotation duration has exceeded MAX_ROTATION_DURATION_SEC
         """
         curr_time = datetime.datetime.now(datetime.timezone.utc)
-        do_continue = abs((target_azimuth_angle - initial_azimuth_angle) % 360) < 2
-        do_continue &= abs((current_azimuth_angle - initial_azimuth_angle) % 360) < tolerance
+        do_continue = abs((target_azimuth_angle - current_azimuth_angle) % 360) >= tolerance
+        do_continue &= abs((current_azimuth_angle - initial_azimuth_angle) % 360) < max_rotation_degrees
         do_continue &= (curr_time - start_time).total_seconds() < MAX_ROTATION_DURATION_SEC
         return do_continue
 
     while continue_rotation(current_azimuth_angle):
-        # Wait until packets arrive
-        while continue_rotation(current_azimuth_angle) and ser.in_waiting == 0:
-            time.sleep(0.01)
         packet_data = ser.readline().decode('ascii')
         print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
@@ -89,8 +88,8 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
         current_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(current_azimuth_angle)
-
     stop_rotation(ser)
+    print('STOPPING DOME ROTATION')
     final_azimuth_angle = get_current_az_angle(ser)
     print(f"final azimuth angle: {final_azimuth_angle}")
     print(f"azimuthal angles: {azimuth_angles}")
@@ -98,19 +97,16 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2
         return None
     return final_azimuth_angle
 
-def listen_for_az(ser, listen_duration_sec = 2):
+def listen_for_az(ser, listen_timeout = 10, return_on_first_az=True):
     """Seconds to listen for azimuth angle"""
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
 
     def continue_listen():
         curr_time = datetime.datetime.now(datetime.timezone.utc)
-        return (curr_time - start_time).total_seconds() < listen_duration_sec
+        return (curr_time - start_time).total_seconds() < listen_timeout
 
     while continue_listen():
-        # Wait until packets arrive
-        while continue_listen() and ser.in_waiting == 0:
-            time.sleep(0.01)
         packet_data = ser.readline().decode('ascii')
         print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
@@ -119,6 +115,8 @@ def listen_for_az(ser, listen_duration_sec = 2):
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
         last_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(last_azimuth_angle)
+        if return_on_first_az:
+            break
     if len(azimuth_angles) == 0:
         return None
     print(azimuth_angles)
@@ -126,14 +124,10 @@ def listen_for_az(ser, listen_duration_sec = 2):
 
 
 def get_current_az_angle(ser: serial.Serial):
+    time.sleep(2)
     ser.write(str.encode("RDP"))
     last_azimuth_angle = listen_for_az(ser)
     return last_azimuth_angle
-    # rotate_left_nsec_and_stop(2)
-    # time.sleep(2)
-    # rotate_right_nsec_and_stop(2)
-    # last_azimuth_angle = listen_for_az(ser)
-    # return last_azimuth_angle
 
 
 
