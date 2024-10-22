@@ -5,11 +5,10 @@ Utility routines for the dome control program.
 import os
 from pathlib import Path
 import json
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 config_fname = 'crocker_control_config.json'
-
 
 
 SERIAL_WRITE_TIMEOUT = 1
@@ -18,7 +17,6 @@ NUM_RETRY_ATTEMPTS = 10
 RETRY_INTERVAL_SEC = 10
 
 # Create
-
 
 def load_config():
     with open(config_fname, 'r') as fp:

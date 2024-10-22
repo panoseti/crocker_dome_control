@@ -84,17 +84,21 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=2
         packet_data = ser.readline().decode('ascii')
         print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-        if "az" not in packet_data.lower():
+        if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
             continue
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
         current_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(current_azimuth_angle)
+
     stop_rotation(ser)
+    final_azimuth_angle = get_current_az_angle(ser)
+    print(f"final azimuth angle: {final_azimuth_angle}")
+    print(f"azimuthal angles: {azimuth_angles}")
     if len(azimuth_angles) == 0:
         return None
-    return azimuth_angles[-1]
+    return final_azimuth_angle
 
-def listen_for_az(ser, listen_duration_sec = 3):
+def listen_for_az(ser, listen_duration_sec = 2):
     """Seconds to listen for azimuth angle"""
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
@@ -110,7 +114,7 @@ def listen_for_az(ser, listen_duration_sec = 3):
         packet_data = ser.readline().decode('ascii')
         print(packet_data)
         # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-        if "az" not in packet_data.lower():
+        if "az" not in packet_data.lower() and "rdp" not in packet_data.lower():
             continue
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
         last_azimuth_angle = float(packet_data.lower().split("=")[1])
