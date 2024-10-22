@@ -156,7 +156,6 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
 def get_curr_az(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
     """Queries the dome controller and returns its current azimuth angle."""
     ser.write(str.encode("RDP"))
-    ser.flush()
     az_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
@@ -192,10 +191,8 @@ def rotate_left_nsec_and_stop(ser: serial.Serial, n: int):
         raise ValueError('n was {0} must be between 0 and {1}'.format(n, MAX_ROTATION_DURATION_SEC))
 
     ser.write(str.encode('DLO'))
-    ser.flush()
     time.sleep(n)
     ser.write(str.encode('DLo'))
-    ser.flush()
 
 
 def rotate_right_nsec_and_stop(ser: serial.Serial, n: int):
@@ -210,10 +207,8 @@ def rotate_right_nsec_and_stop(ser: serial.Serial, n: int):
     if not 0 <= n < MAX_ROTATION_DURATION_SEC:
         raise ValueError('n was {0} must be between 0 and {1}'.format(n, MAX_ROTATION_DURATION_SEC))
     ser.write(str.encode('DRO'))
-    ser.flush()
     time.sleep(n)
     ser.write(str.encode('DRo'))
-    ser.flush()
 
 
 """ Manually start & stop dome rotation """
@@ -228,7 +223,6 @@ def start_rotate_left(ser: serial.Serial):
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port
     """
     ser.write(str.encode('DLO'))
-    ser.flush()
 
 
 def start_rotate_right(ser: serial.Serial):
@@ -240,7 +234,6 @@ def start_rotate_right(ser: serial.Serial):
     :raises SerialTimeoutException: if the command cannot be sent through the provided serial port
     """
     ser.write(str.encode('DRO'))
-    ser.flush()
 
 
 def stop_rotation(ser: serial.Serial, direction='both'):
@@ -253,16 +246,12 @@ def stop_rotation(ser: serial.Serial, direction='both'):
     """
     if direction == 'right':
         ser.write(str.encode('DRo'))
-        ser.flush()
     elif direction == 'left':
         ser.write(str.encode('DLo'))
-        ser.flush()
     else:
         ser.write(str.encode('DRo'))
-        ser.flush()
         time.sleep(2)
         ser.write(str.encode('DLo'))
-        ser.flush()
 
 
 """ CLI routines"""

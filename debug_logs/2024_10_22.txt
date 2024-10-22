@@ -1,0 +1,387 @@
+user@CrockerPOCO:~/crocker_dome_control $ ./rotate.py test_auto_rot
+Initial azimuth angle: 0.0, target_angle = 30
+Starting dome rotation: RIGHT 30.0 degrees
+Current azimuth angle: 1.0
+Current azimuth angle: 2.0
+Current azimuth angle: 3.0
+Current azimuth angle: 4.0
+Current azimuth angle: 5.0
+Current azimuth angle: 6.0
+Current azimuth angle: 7.0
+Current azimuth angle: 8.0
+Current azimuth angle: 9.0
+Current azimuth angle: 10.0
+Current azimuth angle: 11.0
+Current azimuth angle: 12.0
+Current azimuth angle: 13.0
+Current azimuth angle: 14.0
+Current azimuth angle: 15.0
+Current azimuth angle: 16.0
+Current azimuth angle: 17.0
+Current azimuth angle: 18.0
+Current azimuth angle: 19.0
+Current azimuth angle: 20.0
+Current azimuth angle: 21.0
+Current azimuth angle: 22.0
+Current azimuth angle: 23.0
+Current azimuth angle: 24.0
+Current azimuth angle: 25.0
+Current azimuth angle: 26.0
+Stopping dome rotation
+Verifying dome rotation has stopped...
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 28.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 29.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 30.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xf8 in position 2: ordinal not in range(128),
+	packet_data: b'VH\xf8Azimuth = 31\r\n'
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 32.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 33.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 34.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 35.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 36.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xae in position 0: ordinal not in range(128),
+	packet_data: b'\xae\x16VH\x88\xea\xfbwer Closed\r\n'
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 37.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 38.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 39.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0x95 in position 0: ordinal not in range(128),
+	packet_data: b'\x95\xc9\x81Closed\r\n'
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 40.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 41.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 42.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 45.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 46.0
+Dome rotation stopped
+Final azimuth angle: 46.0
+Initial azimuth angle: 46.0, target_angle = 15
+Starting dome rotation: LEFT 31.0 degrees
+Current azimuth angle: 45.0
+Current azimuth angle: 44.0
+Current azimuth angle: 43.0
+Current azimuth angle: 42.0
+Current azimuth angle: 41.0
+Current azimuth angle: 40.0
+Current azimuth angle: 39.0
+Current azimuth angle: 38.0
+Current azimuth angle: 37.0
+Current azimuth angle: 36.0
+Current azimuth angle: 35.0
+Current azimuth angle: 34.0
+Current azimuth angle: 33.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xf8 in position 2: ordinal not in range(128),
+	packet_data: b'VH\xf8Azimuth = 32\r\n'
+Current azimuth angle: 31.0
+Current azimuth angle: 30.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xf8 in position 3: ordinal not in range(128),
+	packet_data: b'\x16VH\xf8Azimuth = 29\r\n'
+Current azimuth angle: 28.0
+Current azimuth angle: 27.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xeb in position 0: ordinal not in range(128),
+	packet_data: b'\xebk\x95\x915\n'
+Current azimuth angle: 26.0
+Current azimuth angle: 25.0
+Current azimuth angle: 24.0
+Current azimuth angle: 23.0
+Current azimuth angle: 22.0
+Current azimuth angle: 21.0
+Current azimuth angle: 20.0
+Current azimuth angle: 19.0
+Stopping dome rotation
+Verifying dome rotation has stopped...
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 17.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 16.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 15.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 14.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 13.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 12.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 11.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 10.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 9.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 8.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 7.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 6.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 5.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 4.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 1.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 0.0
+Dome rotation stopped
+Final azimuth angle: 0.0
+Initial azimuth angle: 0.0, target_angle = 45
+Starting dome rotation: RIGHT 45.0 degrees
+Current azimuth angle: 1.0
+Current azimuth angle: 2.0
+Current azimuth angle: 3.0
+Current azimuth angle: 4.0
+Current azimuth angle: 5.0
+Current azimuth angle: 6.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0x88 in position 1: ordinal not in range(128),
+	packet_data: b'H\x88\xea\xfbwer Closed\r\n'
+Current azimuth angle: 7.0
+Current azimuth angle: 8.0
+Current azimuth angle: 9.0
+Current azimuth angle: 10.0
+Current azimuth angle: 11.0
+Current azimuth angle: 12.0
+Current azimuth angle: 13.0
+Current azimuth angle: 14.0
+Current azimuth angle: 15.0
+Current azimuth angle: 16.0
+Current azimuth angle: 17.0
+Current azimuth angle: 18.0
+Current azimuth angle: 19.0
+Current azimuth angle: 20.0
+Current azimuth angle: 21.0
+Current azimuth angle: 22.0
+Current azimuth angle: 23.0
+Current azimuth angle: 24.0
+Current azimuth angle: 25.0
+Current azimuth angle: 26.0
+Current azimuth angle: 27.0
+Current azimuth angle: 28.0
+Current azimuth angle: 29.0
+Current azimuth angle: 30.0
+Current azimuth angle: 31.0
+Current azimuth angle: 32.0
+Current azimuth angle: 33.0
+Current azimuth angle: 34.0
+Current azimuth angle: 35.0
+Current azimuth angle: 36.0
+Current azimuth angle: 37.0
+Current azimuth angle: 38.0
+Current azimuth angle: 39.0
+Current azimuth angle: 40.0
+Current azimuth angle: 41.0
+Stopping dome rotation
+Verifying dome rotation has stopped...
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 43.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 44.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 45.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 46.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 47.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 48.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 49.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 50.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 51.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 52.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 53.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 54.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 55.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 56.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 57.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 58.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 59.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 60.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 61.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 62.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 63.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 66.0
+Dome rotation stopped
+Final azimuth angle: 66.0
+Initial azimuth angle: 66.0, target_angle = 0
+Starting dome rotation: LEFT 66.0 degrees
+Current azimuth angle: 65.0
+Current azimuth angle: 64.0
+Current azimuth angle: 63.0
+Current azimuth angle: 62.0
+Current azimuth angle: 61.0
+Current azimuth angle: 60.0
+Current azimuth angle: 59.0
+Current azimuth angle: 58.0
+Current azimuth angle: 57.0
+Current azimuth angle: 56.0
+Current azimuth angle: 55.0
+Current azimuth angle: 54.0
+Current azimuth angle: 53.0
+Current azimuth angle: 52.0
+Current azimuth angle: 51.0
+Current azimuth angle: 50.0
+Current azimuth angle: 49.0
+Current azimuth angle: 48.0
+Current azimuth angle: 47.0
+Current azimuth angle: 46.0
+Current azimuth angle: 45.0
+Current azimuth angle: 44.0
+Current azimuth angle: 43.0
+Current azimuth angle: 42.0
+Current azimuth angle: 41.0
+Current azimuth angle: 40.0
+Current azimuth angle: 39.0
+Current azimuth angle: 38.0
+Current azimuth angle: 37.0
+Current azimuth angle: 36.0
+Current azimuth angle: 35.0
+Current azimuth angle: 34.0
+Current azimuth angle: 33.0
+Current azimuth angle: 32.0
+Current azimuth angle: 31.0
+Current azimuth angle: 30.0
+Current azimuth angle: 29.0
+Current azimuth angle: 28.0
+Current azimuth angle: 27.0
+Current azimuth angle: 26.0
+Current azimuth angle: 25.0
+Current azimuth angle: 24.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xf8 in position 1: ordinal not in range(128),
+	packet_data: b'H\xf8Azimuth = 23\r\n'
+Current azimuth angle: 22.0
+Current azimuth angle: 21.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xeb in position 1: ordinal not in range(128),
+	packet_data: b'(\xebk\x95\x915\n'
+Current azimuth angle: 20.0
+Current azimuth angle: 19.0
+Current azimuth angle: 18.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xf8 in position 3: ordinal not in range(128),
+	packet_data: b'\x16VH\xf8Azimuth = 17\r\n'
+Current azimuth angle: 16.0
+Current azimuth angle: 15.0
+FAILED to read packet!
+	UnicodeDecodeError: 'ascii' codec can't decode byte 0xae in position 0: ordinal not in range(128),
+	packet_data: b'\xae\x16VH\x88\xea\xfbwer Closed\r\n'
+Current azimuth angle: 14.0
+Current azimuth angle: 13.0
+Current azimuth angle: 12.0
+Current azimuth angle: 11.0
+Current azimuth angle: 10.0
+Current azimuth angle: 9.0
+Current azimuth angle: 8.0
+Current azimuth angle: 7.0
+Current azimuth angle: 6.0
+Current azimuth angle: 5.0
+Current azimuth angle: 4.0
+Stopping dome rotation
+Verifying dome rotation has stopped...
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 2.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 1.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 0.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 360.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 359.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 358.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 357.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 356.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 355.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 354.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 353.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 352.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 351.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 350.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 349.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 348.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 347.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 346.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 345.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 344.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 343.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 342.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 341.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 340.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 339.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 338.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 337.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 0.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 360.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 359.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 0.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 360.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 359.0
+	WARNING: failed to stop dome rotation. Retrying...
+Current azimuth angle: 356.0
+Dome rotation stopped
+Final azimuth angle: 356.0
+TEST DONE
