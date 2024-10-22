@@ -27,11 +27,13 @@ MIN_AZ_DIFF = 3
 # "Right" increases the azimuth angle, "Left" decreases it.
 
 def test_auto_rotate(ser):
-    target_azimuth_angles = [30, 15, 45, 0]
+    target_azimuth_angles = [20, 0, 20, 0]
     for target_az in target_azimuth_angles:
         initial_az = get_curr_az(ser)
         print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
         final_az = auto_rotate_to_azimuth(ser, target_az)
+        print()
+        time.sleep(2)
     print('TEST DONE')
 
 
