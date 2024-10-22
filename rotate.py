@@ -127,21 +127,18 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
         time.sleep(0.1)
     print('Stopping dome rotation')
     stop_rotation(ser, rot_dir)
-    # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
+    ser.reset_input_buffer()
+    # Wait 4 seconds and observe no movement reports to verify that stop was successful.
     print("Verifying dome rotation has stopped...")
-    time.sleep(2)
     time_since_stop = datetime.datetime.now(datetime.timezone.utc)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
-    old_rot_packet = True
-    while (curr_time - time_since_stop).total_seconds() < 3:
-        if ser.in_waiting > 0:
+    while (curr_time - time_since_stop).total_seconds() < 4:
+        while ser.in_waiting > 0:
             az_data = read_az_packet(ser)
             if az_data is not None:
-                if old_rot_packet:
-                    old_rot_packet = False
-                    continue
                 print('\tWARNING: failed to stop dome rotation. Retrying...')
                 stop_rotation(ser, rot_dir)
+                ser.reset_input_buffer()
                 time_since_stop = datetime.datetime.now(datetime.timezone.utc)
                 curr_az = az_data
                 az_angles.append(curr_az)
@@ -246,8 +243,10 @@ def stop_rotation(ser: serial.Serial, direction='both'):
     """
     if direction == 'right':
         ser.write(str.encode('DRo'))
+        time.sleep(2)
     elif direction == 'left':
         ser.write(str.encode('DLo'))
+        time.sleep(2)
     else:
         ser.write(str.encode('DRo'))
         time.sleep(2)
