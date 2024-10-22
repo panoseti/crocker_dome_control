@@ -57,7 +57,7 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         max_rotation_degrees = az_diff_rot_left
     # Start rotation
     start_time = datetime.datetime.now(datetime.timezone.utc)
-    time.sleep(1)
+    time.sleep(2)
     print(f"STARTING DOME ROTATION {direction}")
     if direction == 'right':
         start_rotate_right(ser)
@@ -88,6 +88,8 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
         current_azimuth_angle = float(packet_data.lower().split("=")[1])
         azimuth_angles.append(current_azimuth_angle)
+        # time.sleep(0.1)
+        # ser.write(str.encode("RDP"))
     stop_rotation(ser)
     print('STOPPING DOME ROTATION')
     final_azimuth_angle = get_current_az_angle(ser)
@@ -97,11 +99,11 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
         return None
     return final_azimuth_angle
 
-def listen_for_az(ser, listen_timeout = 10, return_on_first_az=True):
-    """Seconds to listen for azimuth angle"""
+def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
+    time.sleep(2)
+    ser.write(str.encode("RDP"))
     azimuth_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
-
     def continue_listen():
         curr_time = datetime.datetime.now(datetime.timezone.utc)
         return (curr_time - start_time).total_seconds() < listen_timeout
@@ -119,15 +121,7 @@ def listen_for_az(ser, listen_timeout = 10, return_on_first_az=True):
             break
     if len(azimuth_angles) == 0:
         return None
-    print(azimuth_angles)
     return azimuth_angles[-1]
-
-
-def get_current_az_angle(ser: serial.Serial):
-    time.sleep(2)
-    ser.write(str.encode("RDP"))
-    last_azimuth_angle = listen_for_az(ser)
-    return last_azimuth_angle
 
 
 
@@ -262,6 +256,7 @@ def rotation_cli_main():
             try:
                 do_rotation_command(ser, args.command)
             except Exception as ex:
+                time.sleep(2)
                 stop_rotation(ser)
                 raise ex
 
