@@ -18,7 +18,7 @@ from serial.serialutil import SerialTimeoutException
 from lib import *
 
 CLI_rotation_commands = ['left2sec', 'right2sec', 'left', 'right', 'stop', 'pos', 'test_auto_rot']
-MAX_ROTATION_DURATION_SEC = 10
+MAX_ROTATION_DURATION_SEC = 20
 MIN_AZ_DIFF = 3
 
 """ Auto move to a particular azimuth angle. """
@@ -109,10 +109,14 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
 
     # Start rotation
     print(f"Starting dome rotation: {rot_dir.upper()} {angular_dist} degrees")
+    rot_duration = max(2, (angular_dist - az_error_to_stop_fast_rotation) / 2)
+    print('Rotating dome for {0} seconds'.format(rot_duration))
     if rot_dir == 'right':
-        start_rotate_right(ser)
+        rotate_right_nsec_and_stop(ser, rot_duration)
+        # start_rotate_right(ser)
     elif rot_dir == 'left':
-        start_rotate_left(ser)
+        rotate_left_nsec_and_stop(ser, rot_duration)
+        # start_rotate_left(ser)
 
     # Wait until dome is at or close to target azimuth angle
     az_angles = []
