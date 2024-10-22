@@ -29,79 +29,104 @@ MIN_AZ_DIFF = 3
 def test_auto_rotate(ser):
     target_azimuth_angles = [30, 15, 45, 0]
     for target_az in target_azimuth_angles:
-        initial_az = get_current_az_angle(ser)
+        initial_az = get_curr_az(ser)
         print('Initial azimuth angle: {0}, target_angle = {1}'.format(initial_az, target_az))
         final_az = auto_rotate_to_azimuth(ser, target_az)
     print('TEST DONE')
 
 
-def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3):
-    initial_azimuth_angle = get_current_az_angle(ser)
-    if (initial_azimuth_angle is None) or not (-2 <= initial_azimuth_angle <= 362):
-        raise ValueError('last_azimuth_angle must be between 0 and 362')
+def get_continue_rotation_fn(target_az, initial_az, rot_dir, angle_diff_thresh, max_angular_dist):
+    """
+    Returns a function that returns True only if the dome should continue rotating
+    Rotate dome until:
+     - the azimuth angle reported by the dome controller is within 2 degrees of requested value
+     - rotation amount has exceeded the calculated rotation amount
+    """
+    def continue_rotation(curr_az: float) -> bool:
+        if rot_dir == 'right':
+            angular_diff = abs((target_az - curr_az) % 360)
+            angular_dist = abs((curr_az - initial_az) % 360)
+        else:
+            angular_diff = abs((curr_az - target_az) % 360)
+            angular_dist = abs((initial_az - curr_az) % 360)
+        # print(f"angular_diff = {angular_diff}, angular_dist = {angular_dist}")
+        do_continue = not (angular_diff < angle_diff_thresh)
+        do_continue &= angular_dist < max_angular_dist
+        return do_continue
+    return continue_rotation
 
-    # Deal with bug in azimuth reporting code
-    if initial_azimuth_angle in [-1, 361]:
-        initial_azimuth_angle = 1
+def read_az_packet(ser: serial.Serial):
+    """Read one packet from the serial port ser.
+    :return: azimuth angle if this is a az packet and None otherwise.
+    """
+    if ser.in_waiting > 0:
+        time.sleep(0.2)  # Wait for all data to arrive?
+        try:
+            packet_data = ser.readline()
+            packet_data = packet_data.decode("ascii")
+        except UnicodeDecodeError as ude:
+            print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
+            return None
+        # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
+        if "az" in packet_data.lower() or "rdp" in packet_data.lower():
+            curr_az = float(packet_data.lower().split("=")[1])
+            return curr_az
+
+
+def auto_rotate_to_azimuth(ser: serial.Serial, target_az, az_error_tol=3):
+    """
+
+    :param ser: Open serial port to the dome controller device.
+    :param target_az: azimuth angle the dome should be rotated to.
+    :param az_error_tol: max angular error between target_az and final azimuth angle.
+    :return: final azimuth angle.
+    """
+    initial_az = get_curr_az(ser)
+    if (initial_az is None) or not (-2 <= initial_az <= 362):
+        raise ValueError('last_azimuth_angle must be between 0 and 362')
+    if initial_az in [-1, 361]:  # Deal with bug in azimuth reporting code
+        initial_az = 1
 
     # Determine which direction requires the less rotation
-    az_diff_rot_right = (target_azimuth_angle - initial_azimuth_angle) % 360
-    az_diff_rot_left = (initial_azimuth_angle - target_azimuth_angle) % 360
+    az_diff_rot_right = (target_az - initial_az) % 360
+    az_diff_rot_left = (initial_az - target_az) % 360
     if abs(az_diff_rot_right) < abs(az_diff_rot_left):
-        direction = 'right'
-        max_rotation_degrees = az_diff_rot_right
+        rot_dir = 'right'
+        angular_dist = az_diff_rot_right
     else:
-        direction = 'left'
-        max_rotation_degrees = az_diff_rot_left
+        rot_dir = 'left'
+        angular_dist = az_diff_rot_left
+    # Do no rotation if current dome position is close enough to target_az
+    if angular_dist < az_error_tol:
+        print(f'Target position within {az_error_tol} deg of target: diff = {angular_dist}')
+        return initial_az
 
-    if max_rotation_degrees < tolerance:
-        print(f'Target position within {tolerance} deg of target: diff = {max_rotation_degrees}')
-        return initial_azimuth_angle
+    # Get boolean-valued function controlling when to stop dome rotation
+    az_error_to_stop_fast_rotation = 5  # Distance to stop rapid dome rotation and switch to small steps for precise alignment.
+    continue_rotation = get_continue_rotation_fn(
+        target_az, initial_az, rot_dir, az_error_to_stop_fast_rotation, angular_dist
+    )
+
     # Start rotation
-    print(f"Starting dome rotation {direction.upper()} {max_rotation_degrees} degrees")
-    if direction == 'right':
+    print(f"Starting dome rotation: {rot_dir.upper()} {angular_dist} degrees")
+    if rot_dir == 'right':
         start_rotate_right(ser)
-    elif direction == 'left':
+    elif rot_dir == 'left':
         start_rotate_left(ser)
+
     # Wait until dome is at or close to target azimuth angle
-    azimuth_angles = []
-    current_azimuth_angle = initial_azimuth_angle
-
-    def continue_rotation(current_azimuth_angle: float):
-        """
-        Rotate dome until:
-         - the azimuth angle reported by the dome controller is within 2 degrees of requested value
-         - rotation amount has exceeded the calculated rotation amount
-         - rotation duration has exceeded MAX_ROTATION_DURATION_SEC
-        """
-        if direction == 'right':
-            angular_diff = abs((target_azimuth_angle - current_azimuth_angle) % 360)
-            angular_dist = abs((current_azimuth_angle - initial_azimuth_angle) % 360)
-        else:
-            angular_diff = abs((current_azimuth_angle - target_azimuth_angle) % 360)
-            angular_dist = abs((initial_azimuth_angle - current_azimuth_angle) % 360)
-        # print(f"angular_diff = {angular_diff}, angular_dist = {angular_dist}")
-        do_continue = not (angular_diff < tolerance)
-        do_continue &= angular_dist < max_rotation_degrees
-        return do_continue
-
-    while continue_rotation(current_azimuth_angle):
+    az_angles = []
+    curr_az = initial_az
+    while continue_rotation(curr_az):
         if ser.in_waiting > 0:
-            time.sleep(0.2) # Wait for all data to arrive?
-            try:
-                packet_data = ser.readline()
-                packet_data = packet_data.decode("ascii")
-            except UnicodeDecodeError as ude:
-                print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
-                continue
-            # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-            if "az" in packet_data.lower() or "rdp" in packet_data.lower():
-                current_azimuth_angle = float(packet_data.lower().split("=")[1])
-                print(f"Current azimuth angle: {current_azimuth_angle}")
-                azimuth_angles.append(current_azimuth_angle)
+            az_data = read_az_packet(ser)
+            if az_data is not None:
+                curr_az = az_data
+                az_angles.append(curr_az)
+                print(f"Current azimuth angle: {curr_az}")
         time.sleep(0.1)
     print('Stopping dome rotation')
-    stop_rotation(ser, direction)
+    stop_rotation(ser, rot_dir)
     # Must wait 3 seconds an observe no movement reports to verify that stop was successful.
     print("Verifying dome rotation has stopped...")
     time.sleep(2)
@@ -110,55 +135,45 @@ def auto_rotate_to_azimuth(ser: serial.Serial, target_azimuth_angle, tolerance=3
     old_rot_packet = True
     while (curr_time - time_since_stop).total_seconds() < 3:
         if ser.in_waiting > 0:
-            try:
-                packet_data = ser.readline()
-                packet_data = packet_data.decode("ascii")
-            except UnicodeDecodeError as ude:
-                print(f'\tFAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
-                continue
-            print(packet_data)
-            # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-            if "az" in packet_data.lower() or "rdp" in packet_data.lower():
+            az_data = read_az_packet(ser)
+            if az_data is not None:
                 if old_rot_packet:
                     old_rot_packet = False
                     continue
                 print('\tWARNING: failed to stop dome rotation. Retrying...')
-                stop_rotation(ser, direction)
+                stop_rotation(ser, rot_dir)
                 time_since_stop = datetime.datetime.now(datetime.timezone.utc)
+                curr_az = az_data
+                az_angles.append(curr_az)
+                print(f"Current azimuth angle: {curr_az}")
         time.sleep(0.1)
         curr_time = datetime.datetime.now(datetime.timezone.utc)
-    final_azimuth_angle = get_current_az_angle(ser)
+    final_azimuth_angle = get_curr_az(ser)
     print('Dome rotation stopped')
-    print(f"final azimuth angle: {final_azimuth_angle}")
+    print(f"Final azimuth angle: {final_azimuth_angle}")
     return final_azimuth_angle
 
-def get_current_az_angle(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
+def get_curr_az(ser: serial.Serial, listen_timeout = 10, return_on_first_az=True):
+    """Queries the dome controller and returns its current azimuth angle."""
     ser.write(str.encode("RDP"))
     ser.flush()
-    azimuth_angles = []
+    az_angles = []
     start_time = datetime.datetime.now(datetime.timezone.utc)
     curr_time = datetime.datetime.now(datetime.timezone.utc)
     while (curr_time - start_time).total_seconds() < listen_timeout:
         curr_time = datetime.datetime.now(datetime.timezone.utc)
         if ser.in_waiting > 0:
-            time.sleep(0.2)
-            try:
-                packet_data = ser.readline()
-                packet_data = packet_data.decode("ascii")
-            except UnicodeDecodeError as ude:
-                print(f'FAILED to read packet!\n\tUnicodeDecodeError: {ude},\n\tpacket_data: {packet_data}')
-                continue
-            # An azimuth packet looks like "Azimuth = {NUM}". Ignore other packets
-            if "az" in packet_data.lower() or "rdp" in packet_data.lower():
-                # Ex: float("Azimuth = 19".lower().split("=")[1]) -> 19.0
-                last_azimuth_angle = float(packet_data.lower().split("=")[1])
-                azimuth_angles.append(last_azimuth_angle)
+            az_data = read_az_packet(ser)
+            if az_data is not None:
+                curr_az = az_data
+                az_angles.append(curr_az)
+                print(f"Current azimuth angle: {curr_az}")
                 if return_on_first_az:
                     break
         time.sleep(0.1)
-    if len(azimuth_angles) == 0:
+    if len(az_angles) == 0:
         return None
-    return azimuth_angles[-1]
+    return az_angles[-1]
 
 
 
@@ -274,7 +289,7 @@ def do_rotation_command(ser: serial.Serial, cmd: str):
         elif cmd == 'stop':
             stop_rotation(ser)
         elif cmd == 'pos':
-            curr_az_angle = get_current_az_angle(ser)
+            curr_az_angle = get_curr_az(ser)
             print(f'Current azimuth angle: {curr_az_angle}')
         elif cmd == 'test_auto_rot':
             test_auto_rotate(ser)
